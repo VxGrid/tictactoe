@@ -35,10 +35,10 @@ private slots:
 
 private:
     void pcAction();
-    bool checkWinCondition(STATE state);
+    bool checkWinCondition(const std::vector<STATE>&states, STATE state) const;
     QQmlApplicationEngine* engine_;
     std::vector<STATE> states_;
-    PCSKILL skill_{MID};
+    PCSKILL skill_{UNBEATABLE};
     bool player_{true};
 
 };

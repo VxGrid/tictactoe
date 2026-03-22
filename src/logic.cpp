@@ -61,7 +61,7 @@ void Logic::receiveAction(QString button)
             break;
     }
 
-    if (checkWinCondition(CIRCLE))
+    if (checkWinCondition(states_, CIRCLE))
     {
         qDebug() << "Gratz you won" << Qt::endl;
         return;
@@ -76,7 +76,7 @@ void Logic::receiveAction(QString button)
 
     pcAction();
 
-    if (checkWinCondition(CROSS))
+    if (checkWinCondition(states_, CROSS))
     {
         qWarning() << "PC won - you looser";
         QObject* rootObj = engine_->rootObjects().first();
@@ -127,34 +127,185 @@ void Logic::pcAction()
         }
 
         case UNBEATABLE:
-            /// FIXME: implement
-            qWarning() << "FIXME" << Qt::endl;
+        {
+            switch (std::count(std::begin(states_), std::end(states_), CIRCLE))
+            {
+                case 1: // first move
+                {
+                    int field{4};
+
+                    if (states_[field] == NONE)
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(field);
+                        states_[field] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+                    else
+                    {
+                        field = 0;
+                        QQuickItem* buttonItem = gridItem->childItems().at(field);
+                        states_[field] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+
+                    break;
+                }
+
+                case 2: // second move
+                {
+                    // here we need to check if Circle can win in next move
+                    for (int i = 0; i < states_.size(); ++i)
+                    {
+                        if (states_[i] == NONE)
+                        {
+                            auto states = states_;
+                            states[i] = CIRCLE;
+
+                            if (checkWinCondition(states, CIRCLE))
+                            {
+                                QQuickItem* buttonItem = gridItem->childItems().at(i);
+                                states_[i] = CROSS;
+                                buttonItem->setProperty("text", "X");
+                                return;
+                            }
+                        }
+                    }
+
+                    // can't win - we check if we are in trap
+                    if ((states_[0] == CIRCLE && states_[5] == CIRCLE)
+                        ||
+                        (states_[1] == CIRCLE && states_[8] == CIRCLE))
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(2);
+                        states_[2] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+                    else if ((states_[0] == CIRCLE && states_[7] == CIRCLE)
+                        ||
+                        (states_[3] == CIRCLE && states_[8] == CIRCLE))
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(6);
+                        states_[6] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+                    else if ((states_[2] == CIRCLE && states_[3] == CIRCLE)
+                        ||
+                        (states_[1] == CIRCLE && states_[6] == CIRCLE))
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(0);
+                        states_[0] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+                    else if ((states_[2] == CIRCLE && states_[7] == CIRCLE)
+                        ||
+                        (states_[5] == CIRCLE && states_[6] == CIRCLE))
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(8);
+                        states_[8] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+
+                    if ((states_[0] == CIRCLE && states_[8] == CIRCLE)
+                        ||
+                        (states_[2] == CIRCLE && states_[6] == CIRCLE))
+                    {
+                        QQuickItem* buttonItem = gridItem->childItems().at(1);
+                        states_[1] = CROSS;
+                        buttonItem->setProperty("text", "X");
+                        return;
+                    }
+
+                    for (int i : {
+                            0, 2, 6, 8
+                        })
+                    {
+                        if (states_[i] == NONE)
+                        {
+                            QQuickItem* buttonItem = gridItem->childItems().at(i);
+                            states_[i] = CROSS;
+                            buttonItem->setProperty("text", "X");
+                            return;
+                        }
+                    }
+                }
+
+                default:
+                {
+                    // starting with third move - we need to check for offence, then for defense
+                    for (int i = 0; i < states_.size(); ++i)
+                    {
+                        if (states_[i] == NONE)
+                        {
+                            auto states = states_;
+                            states[i] = CROSS;
+
+                            if (checkWinCondition(states, CROSS))
+                            {
+                                QQuickItem* buttonItem = gridItem->childItems().at(i);
+                                states_[i] = CROSS;
+                                buttonItem->setProperty("text", "X");
+                                return;
+                            }
+                        }
+                    }
+
+                    for (int i = 0; i < states_.size(); ++i)
+                    {
+                        if (states_[i] == NONE)
+                        {
+                            auto states = states_;
+                            states[i] = CIRCLE;
+
+                            if (checkWinCondition(states, CIRCLE))
+                            {
+                                QQuickItem* buttonItem = gridItem->childItems().at(i);
+                                states_[i] = CROSS;
+                                buttonItem->setProperty("text", "X");
+                                return;
+                            }
+                        }
+                    }
+
+                    skill_ = MID;
+                    pcAction();
+                    skill_ = UNBEATABLE;
+                }
+                break;
+            }
+
             return;
+        }
     }
 }
 
 
-bool Logic::checkWinCondition(STATE state)
+bool Logic::checkWinCondition(const std::vector<STATE> &states, STATE state) const
 {
     /// I nix logic, so just handle all 8 winning cases
     // left right
-    if (states_[0] == state && states_[1] == state && states_[2] == state) return true;
+    if (states[0] == state && states[1] == state && states[2] == state) return true;
 
-    if (states_[3] == state && states_[4] == state && states_[5] == state) return true;
+    if (states[3] == state && states[4] == state && states[5] == state) return true;
 
-    if (states_[6] == state && states_[7] == state && states_[8] == state) return true;
+    if (states[6] == state && states[7] == state && states[8] == state) return true;
 
     // top down
-    if (states_[0] == state && states_[3] == state && states_[6] == state) return true;
+    if (states[0] == state && states[3] == state && states[6] == state) return true;
 
-    if (states_[1] == state && states_[4] == state && states_[7] == state) return true;
+    if (states[1] == state && states[4] == state && states[7] == state) return true;
 
-    if (states_[2] == state && states_[5] == state && states_[8] == state) return true;
+    if (states[2] == state && states[5] == state && states[8] == state) return true;
 
     // diagonal
-    if (states_[0] == state && states_[4] == state && states_[8] == state) return true;
+    if (states[0] == state && states[4] == state && states[8] == state) return true;
 
-    if (states_[2] == state && states_[4] == state && states_[6] == state) return true;
+    if (states[2] == state && states[4] == state && states[6] == state) return true;
 
     return false;
 }
