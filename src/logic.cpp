@@ -6,6 +6,7 @@ Logic::Logic(QObject *parent)
     : QObject{parent}
 {
     states_ = std::vector<STATE>(9, NONE);
+    stupidTexts_ = {"", "A new hope", "Yes try again!", "Again?", "Gamba gamba!", "Do it!"};
 }
 
 
@@ -23,6 +24,10 @@ void Logic::setupGUI()
     {
         auto theGrid = obj->findChild<QObject*>("grid");
         connect(theGrid, SIGNAL(buttonClicked(QString)), this, SLOT(receiveAction(QString)));
+        auto resetButton = obj->findChild<QObject*>("resetButton");
+        connect(resetButton, SIGNAL(clicked()), this, SLOT(reset()));
+        auto groupObj = obj->findChild<QObject*>("radioGroup");
+        connect(groupObj, SIGNAL(selectionChanged(QString)), this, SLOT(setSkill(QString)));
         // for (int i = 0; i < 9; ++i)
         // {
         //     QObject *pb = obj->findChild<QObject*>(QString::fromStdString(std::to_string(i)));
@@ -33,6 +38,43 @@ void Logic::setupGUI()
         //     }
         // }
     }
+}
+
+
+void Logic::reset()
+{
+    qInfo() << "Reset was called" << Qt::endl;
+    states_ = std::vector<STATE>(9, NONE);
+    QObject* rootObj = engine_->rootObjects().first();
+    auto theGrid = rootObj->findChild<QObject*>("grid");
+    QQuickItem* gridItem = qobject_cast<QQuickItem*>(theGrid);
+    gridItem->setEnabled(true);
+
+    for (int i = 0; i < states_.size(); ++i)
+    {
+        QQuickItem* buttonItem = gridItem->childItems().at(i);
+        buttonItem->setProperty("text", "");
+        buttonItem->setEnabled(true);
+    }
+
+    QQuickItem * text = getItem("infoText");
+    ++stupidTextPos_;
+    text->setProperty("text", stupidTexts_[stupidTextPos_ % stupidTexts_.size()]);
+}
+
+
+void Logic::setSkill(QString button)
+{
+    qInfo() << "Received button: " << button << Qt::endl;
+
+    if (button == "Beginner")
+        skill_ = DUMB;
+    else if (button == "Medium")
+        skill_ = MID;
+    else if (button == "Expert")
+        skill_ = UNBEATABLE;
+
+    reset();
 }
 
 
@@ -49,6 +91,7 @@ void Logic::receiveAction(QString button)
         case NONE:
             states_[index] = CIRCLE;
             buttonItem->setProperty("text", "O");
+            buttonItem->setEnabled(false);
             break;
 
         case CIRCLE:
@@ -64,6 +107,8 @@ void Logic::receiveAction(QString button)
     if (checkWinCondition(states_, CIRCLE))
     {
         qDebug() << "Gratz you won" << Qt::endl;
+        QQuickItem * text = getItem("infoText");
+        text->setProperty("text", "Gratz, you won!!!11einseins");
         return;
     }
 
@@ -71,6 +116,8 @@ void Logic::receiveAction(QString button)
                 std::placeholders::_1, NONE)))
     {
         qWarning() << "Game over";
+        QQuickItem * text = getItem("infoText");
+        text->setProperty("text", "Draw");
         return;
     }
 
@@ -83,7 +130,18 @@ void Logic::receiveAction(QString button)
         auto theGrid = rootObj->findChild<QObject*>("grid");
         QQuickItem* gridItem = qobject_cast<QQuickItem*>(theGrid);
         gridItem->setEnabled(false);
+        QQuickItem * text = getItem("infoText");
+        text->setProperty("text", "Computer won - looser!");
+        return;
     }
+}
+
+
+QQuickItem *Logic::getItem(const QString &name)
+{
+    QObject* rootObj = engine_->rootObjects().first();
+    auto obj = rootObj->findChild<QObject*>(name);
+    return qobject_cast<QQuickItem*>(obj);
 }
 
 
@@ -103,6 +161,7 @@ void Logic::pcAction()
                     QQuickItem* buttonItem = gridItem->childItems().at(i);
                     states_[i] = CROSS;
                     buttonItem->setProperty("text", "X");
+                    buttonItem->setEnabled(false);
                     return;
                 }
             }
@@ -121,6 +180,7 @@ void Logic::pcAction()
                     QQuickItem* buttonItem = gridItem->childItems().at(field);
                     states_[field] = CROSS;
                     buttonItem->setProperty("text", "X");
+                    buttonItem->setEnabled(false);
                     return;
                 }
             }
@@ -139,6 +199,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(field);
                         states_[field] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
                     else
@@ -147,6 +208,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(field);
                         states_[field] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
 
@@ -168,6 +230,7 @@ void Logic::pcAction()
                                 QQuickItem* buttonItem = gridItem->childItems().at(i);
                                 states_[i] = CROSS;
                                 buttonItem->setProperty("text", "X");
+                                buttonItem->setEnabled(false);
                                 return;
                             }
                         }
@@ -181,6 +244,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(2);
                         states_[2] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
                     else if ((states_[0] == CIRCLE && states_[7] == CIRCLE)
@@ -190,6 +254,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(6);
                         states_[6] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
                     else if ((states_[2] == CIRCLE && states_[3] == CIRCLE)
@@ -199,6 +264,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(0);
                         states_[0] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
                     else if ((states_[2] == CIRCLE && states_[7] == CIRCLE)
@@ -208,6 +274,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(8);
                         states_[8] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
 
@@ -218,6 +285,7 @@ void Logic::pcAction()
                         QQuickItem* buttonItem = gridItem->childItems().at(1);
                         states_[1] = CROSS;
                         buttonItem->setProperty("text", "X");
+                        buttonItem->setEnabled(false);
                         return;
                     }
 
@@ -230,6 +298,7 @@ void Logic::pcAction()
                             QQuickItem* buttonItem = gridItem->childItems().at(i);
                             states_[i] = CROSS;
                             buttonItem->setProperty("text", "X");
+                            buttonItem->setEnabled(false);
                             return;
                         }
                     }
@@ -250,6 +319,7 @@ void Logic::pcAction()
                                 QQuickItem* buttonItem = gridItem->childItems().at(i);
                                 states_[i] = CROSS;
                                 buttonItem->setProperty("text", "X");
+                                buttonItem->setEnabled(false);
                                 return;
                             }
                         }
@@ -267,6 +337,7 @@ void Logic::pcAction()
                                 QQuickItem* buttonItem = gridItem->childItems().at(i);
                                 states_[i] = CROSS;
                                 buttonItem->setProperty("text", "X");
+                                buttonItem->setEnabled(false);
                                 return;
                             }
                         }

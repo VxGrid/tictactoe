@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <qqmlapplicationengine.h>
+#include <qquickitem.h>
 
 class Logic : public QObject
 {
@@ -13,6 +14,10 @@ public:
     void setEngine(QQmlApplicationEngine *newEngine);
 
     void setupGUI();
+
+public slots:
+    void reset();
+    void setSkill(QString button);
 
 signals:
 
@@ -34,11 +39,14 @@ private slots:
     void receiveAction(QString button);
 
 private:
+    QQuickItem* getItem(const QString&name);
     void pcAction();
     bool checkWinCondition(const std::vector<STATE>&states, STATE state) const;
     QQmlApplicationEngine* engine_;
     std::vector<STATE> states_;
-    PCSKILL skill_{UNBEATABLE};
+    QStringList stupidTexts_;
+    PCSKILL skill_{DUMB};
+    uint8_t stupidTextPos_{};
     bool player_{true};
 
 };
